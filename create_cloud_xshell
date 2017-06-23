@@ -1,0 +1,193 @@
+#!/bin/bash
+IP="([0-9]{1,3}\.){3}[0-9]{1,3}"
+PORT="([0-9]{5})"
+CSV_FILE="create_xshell.csv"
+
+#create xshell session
+create_xshell ()
+{
+local ROLE=('' '' gl map1 map2 map3)
+#local XSH_IP=`echo "$XSH"|grep -Eo "$IP"`
+#sed 's/\\r//g' -i $CSV_FILE
+#fi
+local XSH=`find . -maxdepth 1 -type f -name "*.xsh"`
+local XSH_VALUE=`find . -maxdepth 1  -type f -name "*.xsh"|wc -l`
+#check .xsh file.
+if [[ "${XSH##*.}" = "xsh" ]] && [[ $XSH_VALUE -eq 1 ]];then
+   echo "$XSH file is exist!!"
+else
+   echo "*.xsh is not exist!!"
+   exit 1
+fi
+#
+if [[ -f "$CSV_FILE" ]];then
+    echo "$CSV_FILE is exist!!"
+else
+    echo "$CSV_FILE is not exist!!"
+    exit 5
+fi
+#
+dos2unix $CSV_FILE
+while read line
+do
+local GAME_INFO=($(echo $line|awk -F"," '{print $1,$2,$7,$12,$13,$NF}'))
+if [[ -n $line ]];then
+#    echo "$line" |sed  's/\\r//g'
+local LINE_FRONT=`echo $line |grep -o "^#"`
+    if [ "$LINE_FRONT" = "#" ];then
+        continue
+    else
+        for ((i=2;i<=5;i++))
+        do  
+                cp ${XSH} ${GAME_INFO[0]}-${GAME_INFO[1]}-${GAME_INFO[$i]}-${ROLE[$i]}.xsh
+                sed -r "/Host/s/$IP/${GAME_INFO[$i]}/" -i ${GAME_INFO[0]}-${GAME_INFO[1]}-${GAME_INFO[$i]}-${ROLE[$i]}.xsh
+        done
+        mkdir -p session/${GAME_INFO[0]} && mv ${GAME_INFO[0]}-${GAME_INFO[1]}*.xsh session/${GAME_INFO[0]}
+    fi
+else
+    echo "$line is not null!"
+    exit 1
+fi
+done <"$CSV_FILE"
+}
+#create base config
+create_base_config ()
+{
+local CONFIG_ZIP=`ls |grep -E "[0-9]{4}.zip"`
+if `ls |grep -qE "[0-9]{4}.zip"`;then
+    echo "config zip is exist!"
+    unzip $CONFIG_ZIP -d .
+else
+    echo "config zip is not exist!"
+    exit 2
+fi
+local BASE_CONFIG_FILE=(BaseServerConfigGL.ini DBConfig.ini GMConfig.tab WorldIndex.ini MonitorInfo.ini VoiceCommand.tab BaseServerConfigMAP.ini)
+local NO_CONFIG_FILE=(DBShareConfig.ini GameToggleConfig.ini ExtServerConfig.ini MultiGroupConfig.ini GameConfig.ini ServerIndex.ini)
+while read line;
+do
+local BASE_CONFIG=(`echo $line|awk -F',' '{print $1,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$NF}'`)
+local CONFIG_NUM=`ls |grep -E "*.ini|*.tab"|wc -l`
+local LINE_FRONT=`echo $line |grep -o "^#"`
+if [ "$LINE_FRONT" = "#" ];then
+    continue
+else
+    if [[ "$CONFIG_NUM" -eq 13 ]];then
+        if [[ $(echo ${BASE_CONFIG_FILE[6]}|cut -c 17) = "M" ]] && [[ $(echo ${BASE_CONFIG_FILE[0]}|cut -c 17) = "G" ]];then
+#set map
+            sed -ri "/Server6/{n;N;n;N;s/$IP/${BASE_CONFIG[5]}/g;}" ${BASE_CONFIG_FILE[6]}
+#set IP
+            sed -ri "/Server0/{n;N;n;s/$IP/${BASE_CONFIG[10]}/g;};/Server4/{n;N;n;s/$IP/${BASE_CONFIG[10]}/g;}" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/Server1]/{n;N;n;s/$IP/${BASE_CONFIG[11]}/g;};/Server3/{n;N;n;s/$IP/${BASE_CONFIG[11]}/g;}" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/Server2/{n;N;n;s/$IP/${BASE_CONFIG[12]}/g;};/Server5/{n;N;n;s/$IP/${BASE_CONFIG[12]}/g;}" ${BASE_CONFIG_FILE[6]}
+#set VirtIP
+            sed -ri "/Server0/{N;n;N;n;s/$IP/${BASE_CONFIG[2]}/g;};/Server4/{N;n;N;n;s/$IP/${BASE_CONFIG[2]}/g;}" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/Server1]/{N;n;N;n;s/$IP/${BASE_CONFIG[3]}/g;};/Server3/{N;n;N;n;s/$IP/${BASE_CONFIG[3]}/g;}" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/Server2/{N;n;N;n;s/$IP/${BASE_CONFIG[4]}/g;};/Server5/{N;n;N;n;s/$IP/${BASE_CONFIG[4]}/g;}" ${BASE_CONFIG_FILE[6]}
+#set gongneng
+            sed -ri "/DBCenter/,/Server0/s/$IP/${BASE_CONFIG[5]}/" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/AUServer/{n;s/$IP/${BASE_CONFIG[6]}/;}" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/Billing/{n;s/$IP/${BASE_CONFIG[7]}/;}" ${BASE_CONFIG_FILE[6]}
+            sed -ri "/Billing/{N;n;s/${PORT}/${BASE_CONFIG[9]}/;}" ${BASE_CONFIG_FILE[6]}
+#set gl            
+            sed -ri "/Server6/{n;N;n;N;s/$IP/${BASE_CONFIG[5]}/g;}" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/Server0/{n;N;n;N;s/$IP/${BASE_CONFIG[2]}/g;};/Server4/{n;N;n;N;s/$IP/${BASE_CONFIG[2]}/g;}" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/Server1]/{n;N;n;N;s/$IP/${BASE_CONFIG[3]}/g;};/Server3/{n;N;n;N;s/$IP/${BASE_CONFIG[3]}/g;}" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/Server2/{n;N;n;N;s/$IP/${BASE_CONFIG[4]}/g;};/Server5/{n;N;n;N;s/$IP/${BASE_CONFIG[4]}/g;}" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/DBCenter/,/Server0/s/$IP/${BASE_CONFIG[5]}/" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/AUServer/{n;s/$IP/${BASE_CONFIG[6]}/;}" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/Billing/{n;s/$IP/${BASE_CONFIG[7]}/;}" ${BASE_CONFIG_FILE[0]}
+            sed -ri "/Billing/{N;n;s/${PORT}/${BASE_CONFIG[9]}/;}" ${BASE_CONFIG_FILE[0]}
+        else
+            echo "${BASE_CONFIG_FILE[-1]} and ${BASE_CONFIG_FILE[0]} is not exist."
+        fi
+        echo "alter ${BASE_CONFIG_FILE[0]} ..."
+        echo "alter ${BASE_CONFIG_FILE[1]} ..."
+        sed -ri "/System/{N;n;n;n;s/(dbcenter)[0-9]{4}/\1${BASE_CONFIG[0]}/;}" ${BASE_CONFIG_FILE[1]}
+        sed -ri "/\[DBLog\]/{N;n;s/(dbcenter)[0-9]{1,}/\1${BASE_CONFIG[8]}/;}" ${BASE_CONFIG_FILE[1]} 
+        echo "alter ${BASE_CONFIG_FILE[2]} ..."
+        sed -ri "s/^[0-9]{4}/"${BASE_CONFIG[0]}"/" ${BASE_CONFIG_FILE[2]}
+        echo "alter ${BASE_CONFIG_FILE[3]} ..."
+        sed -ri "/GLServerID/s/[0-9]{4}/"${BASE_CONFIG[0]}"/" ${BASE_CONFIG_FILE[3]}
+        echo "alter ${BASE_CONFIG_FILE[4]} ..."
+        sed -ri "/ServerIP/s/${IP}/${BASE_CONFIG[1]}/" ${BASE_CONFIG_FILE[4]}
+        mkdir -p config/${BASE_CONFIG[0]} && cp ${BASE_CONFIG_FILE[*]} ${NO_CONFIG_FILE[*]} config/${BASE_CONFIG[0]}
+        zip config/${BASE_CONFIG[0]}.zip ${BASE_CONFIG_FILE[*]} ${NO_CONFIG_FILE[*]}
+    else
+        echo "base config file number is wrong!!"
+        exit 3
+    fi
+fi
+    
+done<"$CSV_FILE"
+}
+#
+check_hostname ()
+{
+
+  if [[ $? -eq 0 ]];then
+    echo "hostname modify success!"
+  else
+    echo "hostname modify fail!"
+  fi
+  break
+}
+#
+modify_hostname ()
+{
+while read line
+do
+  local GAME='cjsh_mobile'
+  local HOST_INFO=($(echo $line|awk -F"," '{print $1,$10,$7,$12,$13,$NF}'))
+  local IP_INFO=`ifconfig |grep  "inet addr"|awk -F":| *" 'NR==1{print $4}'`
+  local ROLE_INFO=(`cat create_xshell.csv |awk -F"," 'NR==1{print $1,$10,$3,$4,$5,$6}'`)
+  local HOST_CONFIG="/etc/sysconfig/network"
+  local SYS_HOST=`awk -F= '$1~/HOSTNAME/{print $2}' ${HOST_CONFIG}`
+  local LINE_FRONT=`echo $line |grep -o "^#"`
+    if [[ "$LINE_FRONT" = "#" ]] && [[ -z $line ]];then
+        continue
+    else
+        for i in "${HOST_INFO[@]}"
+        do
+          if [[ "$i" = "${IP_INFO}" ]];then
+            for ((j=0;j<=5;j++))
+              do
+              if [[ "$i" = "${HOST_INFO[$j]}" ]];then
+                hostname ${GAME}-${HOST_INFO[1]}-${HOST_INFO[0]}-${ROLE_INFO[$j]}
+                sed "/HOSTNAME/s/${SYS_HOST}/${GAME}-${HOST_INFO[1]}-${HOST_INFO[0]}-${ROLE_INFO[$j]}/" -i ${HOST_CONFIG}
+                check_hostname
+              fi
+            done     
+          fi
+        done
+    fi
+done < "$CSV_FILE"
+  
+}
+
+#choice 
+cat<<EOF
+select num:
+1.create xshell;
+2.create Base Config;
+3.modify hostname;
+4.exit
+EOF
+#
+read -p "please select num:" answer
+case $answer in
+        1)
+        create_xshell
+        ;;
+        2)
+        create_base_config
+        ;;
+        3)
+        modify_hostname
+        ;;
+        4)
+        exit
+        ;;
+        *)
+        echo "please enter:[1|2|3]"
+        ;;
+esac
