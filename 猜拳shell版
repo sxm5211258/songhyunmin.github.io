@@ -1,0 +1,58 @@
+#!/bin/bash
+#by song
+#20150305
+cai=("shitou" "jiandao" "bu")
+read -p "enter your guess(shitou|jiandao|bu):" anwser
+shitou=2
+jiandao=1
+bu=0
+pc_cai=${cai[$((RANDOM%${#cai[*]}))]}
+ren=$(eval echo \$$anwser)
+pc=$(eval echo \$$pc_cai)
+#布
+if [[ "$anwser" = jiandao ]] || [[ "$anwser" = shitou ]] || [[ "$anwser" = bu ]];then
+   if [[ "$ren" -eq "$bu" ]];then
+      echo "ren guess bu"
+      if [[ "$pc" -eq "$bu" ]];then
+         echo "pc guess bu"
+         echo -e "\e[33m人的布 战平 电脑的布\e[0m"
+      elif [[ "$pc" -eq "$jiandao" ]];then
+         echo "pc guess jiandao"
+         echo -e "\e[31m人的布 败给 电脑的剪刀\e[0m"
+      elif [[ "$pc" -eq "$shitou" ]];then
+         echo "pc guess shitou"
+         echo -e "\e[32m人的布 战胜 电脑的石头\e[0m"
+       fi
+   fi
+   #剪刀
+   if [[ "$ren" -eq "$jiandao" ]];then
+      echo "ren guess jiandao"
+      if [[ "$pc" -eq "$jiandao" ]];then
+         echo "pc guess jiandao"
+         echo -e "\e[33m人的剪刀 战平 电脑的剪刀\e[0m"
+      elif [[ "$pc" -eq "$bu" ]];then
+         echo "pc guess bu"
+         echo -e "\e[32m人的剪刀 战胜 电脑的布\e[0m"
+      elif [[ "$pc" -eq "$shitou" ]];then
+         echo "pc guess shitou"
+         echo -e "\e[31m人的剪刀 败给 电脑的石头\e[0m"
+       fi
+   fi
+   #石头
+   if [[ "$ren" -eq "$shitou" ]];then
+      echo "ren guess shitou"
+      if [[ "$pc" -eq "$shitou" ]];then
+         echo "pc guess shitou"
+         echo -e "\e[33m人的石头 战平 电脑的石头\e[0m"
+      elif [[ "$pc" -eq "$bu" ]];then
+         echo "pc guess bu"
+         echo -e "\e[31m人的石头 败给 电脑的布\e[0m"
+      elif [[ "$pc" -eq "$jiandao" ]];then
+         echo "pc guess jiandao"
+         echo -e "\e[32m人的石头 战胜 电脑的剪刀\e[0m"
+       fi
+   fi
+else 
+  echo "please enter your guess(shitou|jiandao|bu)"
+  exit 1
+fi
